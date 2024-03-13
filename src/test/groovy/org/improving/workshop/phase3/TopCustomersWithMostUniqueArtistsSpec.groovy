@@ -117,24 +117,28 @@ class TopCustomersWithMostUniqueArtistsSpec extends Specification {
         streamsTopic.pipeInput(UUID.randomUUID().toString(), STREAMS.generate(customers[1].id(), artists[8].id()))
         streamsTopic.pipeInput(UUID.randomUUID().toString(), STREAMS.generate(customers[1].id(), artists[9].id()))
 
-        when: "reading the out records again"
+        when: "reading the output records again"
+        outputRecords = outputTopic.readRecordsToList()
+
+        then: "Check that 2 output records were received"
         outputRecords.size() == 2
 
-        then: "customer[1] is now ranked 2nd in the result and customer[2] has moved down to 3rd"
-        top3.customerUniqueArtistsList.size() == 3
-        top3.customerUniqueArtistsList.get(0).customer == customers[0]
-        top3.customerUniqueArtistsList.get(0).uniqueCount == 10
-        top3.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[0]).size()
-        top3.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[0]))
+        and: "customer[1] is now ranked 2nd in the result and customer[2] has moved down to 3rd"
+        def top3_new = outputRecords.last().value()
+        top3_new.customerUniqueArtistsList.size() == 3
+        top3_new.customerUniqueArtistsList.get(0).customer == customers[0]
+        top3_new.customerUniqueArtistsList.get(0).uniqueCount == 10
+        top3_new.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[0]).size()
+        top3_new.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[0]))
 
-        top3.customerUniqueArtistsList.get(1).customer == customers[1]
-        top3.customerUniqueArtistsList.get(1).uniqueCount == 6
-        top3.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.size() == (testCustomerUniqueArtistsMap.get(customers[1]).size() + 2)
-        top3.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.containsAll((testCustomerUniqueArtistsMap.get(customers[1]) + artists[8] + artists[9]))
+        top3_new.customerUniqueArtistsList.get(1).customer == customers[1]
+        top3_new.customerUniqueArtistsList.get(1).uniqueCount == 6
+        top3_new.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.size() == (testCustomerUniqueArtistsMap.get(customers[1]).size() + 2)
+        top3_new.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.containsAll((testCustomerUniqueArtistsMap.get(customers[1]) + artists[8] + artists[9]))
 
-        top3.customerUniqueArtistsList.get(2).customer == customers[2]
-        top3.customerUniqueArtistsList.get(2).uniqueCount == 5
-        top3.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[2]).size()
-        top3.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[2]))
+        top3_new.customerUniqueArtistsList.get(2).customer == customers[2]
+        top3_new.customerUniqueArtistsList.get(2).uniqueCount == 5
+        top3_new.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[2]).size()
+        top3_new.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[2]))
     }
 }
