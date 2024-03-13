@@ -5,13 +5,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
-import org.improving.workshop.samples.PurchaseEventTicket;
 import org.msse.demo.mockdata.music.artist.Artist;
 import org.msse.demo.mockdata.music.event.Event;
-import org.slf4j.event.KeyValuePair;
 import org.springframework.kafka.support.serializer.JsonSerde;
 
 import java.util.HashSet;
@@ -45,7 +42,7 @@ public class GenreStatistics {
                 .table(
                         TOPIC_DATA_DEMO_EVENTS,
                         Materialized
-                                .<String, Event>as(persistentKeyValueStore("customer"))
+                                .<String, Event>as(persistentKeyValueStore("events"))
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(SERDE_EVENT_JSON)
                 );
