@@ -6,14 +6,12 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.improving.workshop.Streams;
 import org.msse.demo.mockdata.customer.profile.Customer;
 import org.msse.demo.mockdata.music.artist.Artist;
-import org.slf4j.event.KeyValuePair;
 import org.springframework.kafka.support.serializer.JsonSerde;
 
 import java.util.*;
@@ -171,12 +169,12 @@ public class TopCustomersWithMostUniqueArtists {
         public SortedCounterMap() { this(1000000); }
 
         public void addUniqueArtistForCustomer(CustomerArtist customerArtist) {
-            CustomerUniqueArtists customerUniqueArtists = map.computeIfAbsent(customerArtist.customer.id(), value -> new CustomerUniqueArtists(customerArtist.customer, new UniqueArtistsSet(), 0L));
-            customerUniqueArtists.uniqueArtistsSet.uniqueArtists.add(customerArtist.artist);
-            customerUniqueArtists.uniqueCount = (long) customerUniqueArtists.uniqueArtistsSet.uniqueArtists.size();
+            CustomerUniqueArtists customerUniqueArtists = this.map.computeIfAbsent(customerArtist.customer.id(), value -> new CustomerUniqueArtists(customerArtist.customer, new UniqueArtistsSet(), 0L));
+            customerUniqueArtists.uniqueArtistsSet.getUniqueArtists().add(customerArtist.artist);
+            customerUniqueArtists.uniqueCount = (long) customerUniqueArtists.getUniqueArtistsSet().uniqueArtists.size();
 
             // Sort the map.
-            this.map = map.entrySet().stream()
+            this.map = this.map.entrySet().stream()
                     .sorted(reverseOrder(Map.Entry.comparingByValue(Comparator.comparing(CustomerUniqueArtists::getUniqueCount))))
                     .limit(maxSize)
                     .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
