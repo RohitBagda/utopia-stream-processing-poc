@@ -69,7 +69,7 @@ public class TrendingArtistGeography {
         // store artist in a table so that the stream can reference them to find artist
         KTable<String, Customer> customerTable = builder
                 .table(
-                        TOPIC_DATA_DEMO_ARTISTS,
+                        TOPIC_DATA_DEMO_CUSTOMERS,
                         Materialized
                                 .<String, Customer>as(persistentKeyValueStore("customer"))
                                 .withKeySerde(Serdes.String())
@@ -146,9 +146,6 @@ public class TrendingArtistGeography {
         private Artist artist;
         private Address address;
     }
-
-
-
 
     @Data
     @AllArgsConstructor
