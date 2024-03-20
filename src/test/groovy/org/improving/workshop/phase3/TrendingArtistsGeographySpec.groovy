@@ -58,7 +58,7 @@ class TrendingArtistsGeographySpec extends Specification {
         given: 'multiple customer streams (each with an address) for multiple artists received by the topology'
 
         /*
-        * Customers: C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
+        * Customers: C1, C2, C3, C4, C5, C6, C7, C8, C9, C10
         * Address:
         *       MN: [C1, C2, C3]
         *       NY: [C4, C5]
@@ -133,7 +133,7 @@ class TrendingArtistsGeographySpec extends Specification {
 
         // Create 6 artists (artist-1, artist-2, artist-3, artist-4, artist-5 and artist-6)
         def artists = new ArrayList<Artist>()
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 6; i++) {
             def artistId = "artist-" + (i+1)
             def artist = ARTISTS.generate(artistId)
             artists.add(artist)
