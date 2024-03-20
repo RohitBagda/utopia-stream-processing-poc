@@ -9,7 +9,6 @@ import org.improving.workshop.Streams
 import org.msse.demo.mockdata.music.artist.Artist
 import org.msse.demo.mockdata.music.event.Event
 import org.msse.demo.mockdata.music.ticket.Ticket
-import org.springframework.kafka.support.serializer.JsonSerde
 import spock.lang.Specification
 
 import static org.improving.workshop.phase3.GenreStatistics.*

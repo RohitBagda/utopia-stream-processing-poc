@@ -8,7 +8,6 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.WindowStore;
 import org.msse.demo.mockdata.customer.address.Address;
 import org.msse.demo.mockdata.customer.profile.Customer;
@@ -160,9 +159,7 @@ public class TrendingArtistGeography {
     public static class CustomerStreamCountMap {
         private Map<String, CustomerStreamCount> map;
 
-        public CustomerStreamCountMap() {
-            map = new HashMap<>();
-        }
+        public CustomerStreamCountMap() { map = new HashMap<>(); }
     }
 
 
@@ -182,11 +179,11 @@ public class TrendingArtistGeography {
     @AllArgsConstructor
     public static class TrendingArtistAggregate {
         private long uniqueCustomerCount;
-        private StateAndCustomerStreamCountMap customerStreamCountMap;
+        private StateAndCustomerStreamCountMap stateAndCustomerStreamCountMap;
 
         public TrendingArtistAggregate() {
             uniqueCustomerCount = 0L;
-            customerStreamCountMap = new StateAndCustomerStreamCountMap();
+            stateAndCustomerStreamCountMap = new StateAndCustomerStreamCountMap();
         }
     }
 
@@ -212,23 +209,34 @@ public class TrendingArtistGeography {
         public SortedCounterMap() { this(1000000); }
 
         public void add(StreamWithCustomerAndArtist streamWithCustomerAndArtist) {
+            // Get TrendingArtistAggregate for artistId if it exists. If not create a new one.
             TrendingArtistAggregate trendingArtistAggregate = trendingArtistAggregatePerArtist.computeIfAbsent(
                 streamWithCustomerAndArtist.artist.id(),
                 value -> new TrendingArtistAggregate()
             );
-            StateAndCustomerStreamCountMap stateAndCustomerStreamCountMap = trendingArtistAggregate.customerStreamCountMap;
-            CustomerStreamCountMap customerStreamCountMap = stateAndCustomerStreamCountMap.map.get(streamWithCustomerAndArtist.customer.id());
-            if (customerStreamCountMap != null) {
-                CustomerStreamCount customerStreamCount = customerStreamCountMap.map.computeIfAbsent(
-                        streamWithCustomerAndArtist.customer.id(),
-                        value -> new CustomerStreamCount()
-                );
-                customerStreamCount.streamCounts++;
-            } else {
-                stateAndCustomerStreamCountMap.map.put(streamWithCustomerAndArtist.customer.id(), new CustomerStreamCountMap());
-            }
 
-            trendingArtistAggregate.uniqueCustomerCount = trendingArtistAggregate.customerStreamCountMap.map.keySet().size();
+            // Get the CustomerStreamCountMap for that artist and state if it exists. If not create a new one.
+            StateAndCustomerStreamCountMap stateAndCustomerStreamCountMap = trendingArtistAggregate.stateAndCustomerStreamCountMap;
+            CustomerStreamCountMap customerStreamCountMap = stateAndCustomerStreamCountMap.map.computeIfAbsent(
+                    streamWithCustomerAndArtist.address.state(), value -> new CustomerStreamCountMap()
+            );
+
+            // Get the CustomerStreamCount for that artist and state and customer. If not create a new one.
+            CustomerStreamCount customerStreamCount = customerStreamCountMap.map.computeIfAbsent(
+                    streamWithCustomerAndArtist.customer.id(),
+                    value -> new CustomerStreamCount(streamWithCustomerAndArtist.customer, 0L)
+            );
+
+            // increment the stream count.
+            customerStreamCount.streamCounts++;
+
+            // Calculate and update the unique customer count for each artist.
+            long uniqueCount = 0L;
+            Map<String, CustomerStreamCountMap> customerStreamCountMapsForAllStates = trendingArtistAggregate.stateAndCustomerStreamCountMap.map;
+            for (Map.Entry<String, CustomerStreamCountMap> entry : customerStreamCountMapsForAllStates.entrySet()) {
+                uniqueCount += entry.getValue().getMap().keySet().size();
+            }
+            trendingArtistAggregate.uniqueCustomerCount = uniqueCount;
 
             // Sort the map.
             this.trendingArtistAggregatePerArtist = trendingArtistAggregatePerArtist.entrySet().stream()
