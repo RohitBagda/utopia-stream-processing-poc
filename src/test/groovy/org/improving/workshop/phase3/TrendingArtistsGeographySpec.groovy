@@ -29,7 +29,7 @@ class TrendingArtistsGeographySpec extends Specification {
     TestInputTopic<String, Address> addressTopic
 
     // outputs
-    TestOutputTopic<String, TrendingArtistGeography.StateAndCustomerStreamCountMap> outputTopic
+    TestOutputTopic<String, TrendingArtistAggregates> outputTopic
 
     def 'setup'() {
         // instantiate new builder
@@ -122,7 +122,7 @@ class TrendingArtistsGeographySpec extends Specification {
 
         // Create addresses for each customer
         def addresses = new ArrayList<Address>()
-        for (int i = 0; i < 10; i++){
+        for (int i = 0; i < 10; i++) {
             def addressID = "address-" + (i+1)
             //def address = ADDRESSES.generateCustomerAddress(addressID, customers.get(i).id())
             def address = new Address(addressID, customers.get(i).id(), "00", "Permanent", "1016", "SE",
@@ -193,15 +193,9 @@ class TrendingArtistsGeographySpec extends Specification {
         streams.add(stream)
         streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
 
-
-
         when: 'reading the output records'
-        def outputRecords = outputTopic.readValue()
+        def outputRecords = outputTopic.readValuesToList().last()
 
-        /*
-        then: 'the expected number of records were received'
-        //outputRecords.size() == streamCount
-        def result = outputTopic.readValue()
-        assert result.trendingArtistAggregates.size() == 4*/
+        then: "asfnksejanf"
     }
 }

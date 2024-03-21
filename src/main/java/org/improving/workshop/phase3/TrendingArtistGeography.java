@@ -160,6 +160,10 @@ public class TrendingArtistGeography {
         private Map<String, CustomerStreamCount> map;
 
         public CustomerStreamCountMap() { map = new HashMap<>(); }
+
+        public long customerCount() {
+            return this.map.keySet().size();
+        }
     }
 
 
@@ -171,7 +175,14 @@ public class TrendingArtistGeography {
         private Map<String , CustomerStreamCountMap> map;
 
         public StateAndCustomerStreamCountMap() {
-            map = new HashMap<>();
+            map = new LinkedHashMap<>();
+        }
+
+        public void top(int limit) {
+            this.map = map.entrySet().stream()
+                    .sorted(reverseOrder(Map.Entry.comparingByValue(Comparator.comparingLong(CustomerStreamCountMap::customerCount))))
+                    .limit(limit)
+                    .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
         }
     }
 
@@ -189,6 +200,7 @@ public class TrendingArtistGeography {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class TrendingArtistAggregates {
         private List<TrendingArtistAggregate> trendingArtistAggregates;
     }
@@ -243,14 +255,20 @@ public class TrendingArtistGeography {
                     .sorted(reverseOrder(Map.Entry.comparingByValue(Comparator.comparing(TrendingArtistAggregate::getUniqueCustomerCount))))
                     .limit(maxSize)
                     .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+
         }
 
         public TrendingArtistAggregates top(int limit) {
-            return new TrendingArtistAggregates(this.trendingArtistAggregatePerArtist.entrySet().stream()
+            TrendingArtistAggregates result = new TrendingArtistAggregates(this.trendingArtistAggregatePerArtist.entrySet().stream()
                     .limit(limit)
                     .map(Map.Entry::getValue)
                     .toList()
             );
+
+            result.trendingArtistAggregates.forEach(trendingArtistAggregate -> trendingArtistAggregate.stateAndCustomerStreamCountMap.top(5));
+
+            return result;
         }
     }
 }
