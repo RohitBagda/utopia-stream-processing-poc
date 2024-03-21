@@ -16,6 +16,7 @@ import org.springframework.kafka.support.serializer.JsonSerde;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.reverseOrder;
 import static java.util.stream.Collectors.toMap;
@@ -164,6 +165,13 @@ public class TrendingArtistGeography {
         public long customerCount() {
             return this.map.keySet().size();
         }
+
+        public long streamCount() {
+            return this.map.values().stream()
+                    .map(customerStreamCount -> customerStreamCount.streamCounts)
+                    .mapToLong(Long::longValue)
+                    .sum();
+        }
     }
 
 
@@ -179,8 +187,11 @@ public class TrendingArtistGeography {
         }
 
         public void top(int limit) {
+            // Sort by highest number of unique customers
+            // If equal then sort by highest number of streams
             this.map = map.entrySet().stream()
-                    .sorted(reverseOrder(Map.Entry.comparingByValue(Comparator.comparingLong(CustomerStreamCountMap::customerCount))))
+                    .sorted(reverseOrder(Comparator.comparingLong((Map.Entry<String, CustomerStreamCountMap> o) ->
+                            o.getValue().customerCount()).thenComparingLong(entry -> entry.getValue().streamCount())))
                     .limit(limit)
                     .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
         }
