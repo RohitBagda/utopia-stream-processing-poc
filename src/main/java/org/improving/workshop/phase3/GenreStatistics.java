@@ -19,7 +19,13 @@ import static org.improving.workshop.Streams.*;
 
 /**
  * Genre Statistics - For each genre find the total number artists, number of tickets sold and total revenue generated.
+ *
+ * Example:
+ *  Hip Hop - 35, 500, 3500000
+ *  EDM - 20, 100, 40000000000
+ *  ...
  */
+@SuppressWarnings("JavadocBlankLines")
 @Slf4j
 public class GenreStatistics {
 

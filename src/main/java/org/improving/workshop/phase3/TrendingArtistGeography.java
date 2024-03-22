@@ -25,12 +25,36 @@ import static org.apache.kafka.streams.state.Stores.persistentWindowStore;
 import static org.improving.workshop.Streams.*;
 
 /**
- * Find the 3 most trending streamed artists currently and then identify the top 5 states with the highest number of
- * unique customers and also the top customer with most stream counts from each of those 5 states.
+ * Find the 3 most trending streamed artists currently and then identify their top 5 states with the highest number of
+ * unique customers and also their top customer with most stream counts from each of those 5 states.
  * Trending here means an artist has the highest unique customers in the US in the past 10 minutes.
  * If there is tie in the top 5 states it picks the state with the highest number of streams for that artist in
  * that window.
+ * Example:
+ *
+ * Taylor Swift
+ *  MN - Moti
+ *  NY - Marques
+ *  NV - John
+ *  ND - Rachel
+ *  WI - Mark
+ *
+ * Bruno Mars
+ *  CA - Bob
+ *  .
+ *  .
+ *  .
+ *  .
+ *
+ * Bleachers
+ *  MN - Rohit
+ *  .
+ *  .
+ *  .
+ *  .
+ *  .
  */
+@SuppressWarnings("JavadocBlankLines")
 @Slf4j
 public class TrendingArtistGeography {
 

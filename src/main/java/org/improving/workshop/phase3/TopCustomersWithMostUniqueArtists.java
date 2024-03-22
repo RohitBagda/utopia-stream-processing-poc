@@ -25,7 +25,13 @@ import static org.improving.workshop.Streams.*;
  * Business question: Finds Top 3 customers with the highest number of unique artists.
  * Description: We will find the top 3 customers with the highest number of unique artists as well as the list of
  * unique artists for those customers
+ *
+ * Tom - 60 [Taylor Swift, Bruno Mars, ...]
+ * Dick - 42 [Bruno Mars, Queen, ...]
+ * Harry - 41 [Queen, Taylor Swift, ...]
+ *
  */
+@SuppressWarnings("JavadocBlankLines")
 @Slf4j
 public class TopCustomersWithMostUniqueArtists {
     // MUST BE PREFIXED WITH "kafka-workshop-"
