@@ -66,13 +66,13 @@ class GenreStatisticsSpec extends Specification{
         def outputRecords = outputTopic.readRecordsToList()
 
         then: 'the expected number of records were received'
-        outputRecords.size() == 80
+        assert outputRecords.size() == 80
 
         and: 'Expected results for Funk Artists'
-        outputRecords.last().value().genre == "Funk"
-        outputRecords.last().value().totalArtists == 2
-        outputRecords.last().value().totalTicketsSold == 80
-        outputRecords.last().value().totalRevenue == 4000
+        assert outputRecords.last().value().genre == "Funk"
+        assert outputRecords.last().value().totalArtists == 2
+        assert outputRecords.last().value().totalTicketsSold == 80
+        assert outputRecords.last().value().totalRevenue == 4000
 
         then: "Given a new Genre with new artists and events and tickets"
         // Number of artists = 4
@@ -91,13 +91,13 @@ class GenreStatisticsSpec extends Specification{
         outputRecords = outputTopic.readRecordsToList()
 
         then: 'the expected number of records were received'
-        outputRecords.size() == 160
+        assert outputRecords.size() == 160
 
         and: "expected results for HipHop Artists"
-        outputRecords.last().value().genre == "HipHop"
-        outputRecords.last().value().totalArtists == 4
-        outputRecords.last().value().totalTicketsSold == 160
-        outputRecords.last().value().totalRevenue == 1600
+        assert outputRecords.last().value().genre == "HipHop"
+        assert outputRecords.last().value().totalArtists == 4
+        assert outputRecords.last().value().totalTicketsSold == 160
+        assert outputRecords.last().value().totalRevenue == 1600
 
         then: "Given an existing genre, create a new funk artist, a new event, and a new ticket ticket"
         def newFunkArtist = createArtists("Funk", 1)
@@ -108,13 +108,13 @@ class GenreStatisticsSpec extends Specification{
         outputRecords = outputTopic.readRecordsToList()
 
         then: 'the expected number of records were received'
-        outputRecords.size() == 1
+        assert outputRecords.size() == 1
 
         and: 'Expected results for Funk Artists'
-        outputRecords.last().value().genre == "Funk"
-        outputRecords.last().value().totalArtists == 3
-        outputRecords.last().value().totalTicketsSold == 81
-        outputRecords.last().value().totalRevenue == 4010
+        assert outputRecords.last().value().genre == "Funk"
+        assert outputRecords.last().value().totalArtists == 3
+        assert outputRecords.last().value().totalTicketsSold == 81
+        assert outputRecords.last().value().totalRevenue == 4010
 
         then: "Given an existing genre, create an existing funk artist, new event, and new ticket"
         def existingFunkArtist = funkArtists.first()
@@ -125,13 +125,13 @@ class GenreStatisticsSpec extends Specification{
         outputRecords = outputTopic.readRecordsToList()
 
         then: 'the expected number of records were received'
-        outputRecords.size() == 1
+        assert outputRecords.size() == 1
 
         and: 'Expected results for Funk Artists'
-        outputRecords.last().value().genre == "Funk"
-        outputRecords.last().value().totalArtists == 3
-        outputRecords.last().value().totalTicketsSold == 82
-        outputRecords.last().value().totalRevenue == 4060
+        assert outputRecords.last().value().genre == "Funk"
+        assert outputRecords.last().value().totalArtists == 3
+        assert outputRecords.last().value().totalTicketsSold == 82
+        assert outputRecords.last().value().totalRevenue == 4060
     }
 
     def createTickets(String eventId, int numTickets, double price){
