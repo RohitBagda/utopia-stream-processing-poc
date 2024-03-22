@@ -116,7 +116,7 @@ class GenreStatisticsSpec extends Specification{
         assert outputRecords.last().value().totalTicketsSold == 81
         assert outputRecords.last().value().totalRevenue == 4010
 
-        then: "Given an existing genre, create an existing funk artist, new event, and new ticket"
+        then: "Given an existing genre, create a new event and ticket for a funk artist that already exists"
         def existingFunkArtist = funkArtists.first()
         def anotherNewEvent = createEvents(existingFunkArtist.id(), 1)
         createTickets(anotherNewEvent.first().id(), 1, 50)
