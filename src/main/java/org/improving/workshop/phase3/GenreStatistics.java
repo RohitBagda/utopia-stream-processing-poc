@@ -21,8 +21,8 @@ import static org.improving.workshop.Streams.*;
 public class GenreStatistics {
 
     public static final String OUTPUT_TOPIC = "kafka-genre-statistics";
-    public static final JsonSerde<ArtistTicket> ARTIST_TICKET_JSON_SERDE = new JsonSerde<>(ArtistTicket.class);
     public static final JsonSerde<ArtistIdTicket> ARTIST_ID_TICKET_JSON_SERDE = new JsonSerde<>(ArtistIdTicket.class);
+    public static final JsonSerde<ArtistTicket> ARTIST_TICKET_JSON_SERDE = new JsonSerde<>(ArtistTicket.class);
     public static final JsonSerde<GenreAggregate> GENRE_AGGREGATE_JSON_SERDE = new JsonSerde<>(GenreAggregate.class);
     public static final JsonSerde<GenreStatistic> GENRE_STATISTIC_JSON_SERDE = new JsonSerde<>(GenreStatistic.class);
 
@@ -58,6 +58,7 @@ public class GenreStatistics {
                 );
 
         eventTable.toStream().peek((key, event) -> log.info("Event '{}' registered with id {}.", key, event.id()));
+        artistTable.toStream().peek((key, artist) -> log.info("Artist '{}' registered with name {}.", key, artist.name()));
 
         builder.stream(TOPIC_DATA_DEMO_TICKETS, Consumed.with(Serdes.String(), SERDE_TICKET_JSON))
                 .peek((ticketId, ticket) -> log.info("Ticket Received: {}", ticket))
@@ -78,13 +79,11 @@ public class GenreStatistics {
                 .aggregate(
                         GenreAggregate::new,
                         (genre, artistTicket, aggregate) -> {
-                            if (!aggregate.isInitialized) {
-                                aggregate.initialize();
-                            }
+                            if (!aggregate.isInitialized) { aggregate.initialize(); }
                             aggregate.addTicketSold(artistTicket);
                             return aggregate;
                         },
-                        // ktable (materialized) configuration
+                        // kTable (materialized) configuration
                         Materialized
                                 .<String, GenreAggregate>as(persistentKeyValueStore("artist-aggregate-table"))
                                 .withKeySerde(Serdes.String())

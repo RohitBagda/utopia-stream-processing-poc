@@ -81,7 +81,7 @@ public class TopCustomersWithMostUniqueArtists {
                 // Join Customers
                 .join(
                         customerTable,
-                        (customerId, customerIdArtist, customer) -> new CustomerArtist(customerIdArtist.getCustomerId(), customer, customerIdArtist.getArtist()),
+                        (customerId, customerIdArtist, customer) -> new CustomerArtist(customer, customerIdArtist.getArtist()),
                         Joined.with(Serdes.String(), CUSTOMER_ID_ARTIST_STREAM_JSON_SERDE, SERDE_CUSTOMER_JSON)
                 )
                 .peek((streamId, customerArtist) -> log.info("Stream: {} with CustomerArtist: {}", streamId, customerArtist))
@@ -124,7 +124,6 @@ public class TopCustomersWithMostUniqueArtists {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class CustomerArtist {
-        private String customerId;
         private Customer customer;
         private Artist artist;
     }
@@ -169,9 +168,12 @@ public class TopCustomersWithMostUniqueArtists {
         public SortedCounterMap() { this(1000000); }
 
         public void addUniqueArtistForCustomer(CustomerArtist customerArtist) {
-            CustomerUniqueArtists customerUniqueArtists = this.map.computeIfAbsent(customerArtist.customer.id(), value -> new CustomerUniqueArtists(customerArtist.customer, new UniqueArtistsSet(), 0L));
-            customerUniqueArtists.uniqueArtistsSet.getUniqueArtists().add(customerArtist.artist);
-            customerUniqueArtists.uniqueCount = (long) customerUniqueArtists.getUniqueArtistsSet().uniqueArtists.size();
+            CustomerUniqueArtists customerUniqueArtists = this.map.computeIfAbsent(
+                    customerArtist.customer.id(),
+                    value -> new CustomerUniqueArtists(customerArtist.customer, new UniqueArtistsSet(), 0L)
+            );
+            customerUniqueArtists.uniqueArtistsSet.uniqueArtists.add(customerArtist.artist);
+            customerUniqueArtists.uniqueCount = (long) customerUniqueArtists.uniqueArtistsSet.uniqueArtists.size();
 
             // Sort the map.
             this.map = this.map.entrySet().stream()

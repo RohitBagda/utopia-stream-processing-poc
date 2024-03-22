@@ -25,8 +25,6 @@ class GenreStatisticsSpec extends Specification{
     // outputs
     TestOutputTopic<String, GenreStatistic> outputTopic
 
-//    public static final JsonSerde<GenreStatistic> GENRE_STATISTIC_JSON_SERDE = new JsonSerde<>(GenreStatistic.class);
-
     def 'setup'(){
         // instantiate new builder
         StreamsBuilder streamsBuilder = new StreamsBuilder()
@@ -52,18 +50,15 @@ class GenreStatisticsSpec extends Specification{
     def 'genre statistic'(){
         given: 'a genre and multiple artists and events and tickets'
 
-        def funkArtists = createArtists("Funk", 2)
-        def hipHopArtists = createArtists("HipHop", 4)
-
         // Number of artists = 2
         // The number of events = 2
         // number of tickets = 20 * 2 * 2 = 80
         // price * number of tickets = 50 * 80 = 4000
-        funkArtists.forEach{
-            def funkArtistEvents = createEvents(it.id(), 2)
+        def funkArtists = createArtists("Funk", 2)
+        funkArtists.forEach{artist ->
+            def funkArtistEvents = createEvents(artist.id(), 2)
             funkArtistEvents.forEach{
                 event -> createTickets(event.id(), 20, 50)
-
             }
         }
 
@@ -84,8 +79,9 @@ class GenreStatisticsSpec extends Specification{
         // The number of events = 4
         // number of tickets = 10 * 4 * 4 = 160
         // price * number of tickets = 10 * 1600 = 16000
-        hipHopArtists.forEach{
-            def hipHopArtistEvents = createEvents(it.id(), 4)
+        def hipHopArtists = createArtists("HipHop", 4)
+        hipHopArtists.forEach{artist ->
+            def hipHopArtistEvents = createEvents(artist.id(), 4)
             hipHopArtistEvents.forEach{
                 event -> createTickets(event.id(), 10, 10)
             }

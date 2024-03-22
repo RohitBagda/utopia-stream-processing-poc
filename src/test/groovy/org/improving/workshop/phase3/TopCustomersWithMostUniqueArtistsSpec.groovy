@@ -96,22 +96,24 @@ class TopCustomersWithMostUniqueArtistsSpec extends Specification {
 
         and: "Top 3 customers with the most unique artist list is as expected"
         def top3 = outputRecords.last().value()
+        // 1st Place -> Customer0
         top3.customerUniqueArtistsList.size() == 3
         top3.customerUniqueArtistsList.get(0).customer == customers[0]
         top3.customerUniqueArtistsList.get(0).uniqueCount == 10
         top3.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[0]).size()
         top3.customerUniqueArtistsList.get(0).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[0]))
 
+        // 2nd Place -> Customer2
         top3.customerUniqueArtistsList.get(1).customer == customers[2]
         top3.customerUniqueArtistsList.get(1).uniqueCount == 5
         top3.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[2]).size()
         top3.customerUniqueArtistsList.get(1).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[2]))
 
+        // 3rd Place -> Customer1
         top3.customerUniqueArtistsList.get(2).customer == customers[1]
         top3.customerUniqueArtistsList.get(2).uniqueCount == 4
         top3.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.size() == testCustomerUniqueArtistsMap.get(customers[1]).size()
         top3.customerUniqueArtistsList.get(2).uniqueArtistsSet.uniqueArtists.containsAll(testCustomerUniqueArtistsMap.get(customers[1]))
-
 
         then: "Add 2 new artists for customer1"
         streamsTopic.pipeInput(UUID.randomUUID().toString(), STREAMS.generate(customers[1].id(), artists[8].id()))
