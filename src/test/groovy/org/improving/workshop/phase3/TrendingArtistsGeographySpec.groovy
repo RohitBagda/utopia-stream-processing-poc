@@ -134,8 +134,8 @@ class TrendingArtistsGeographySpec extends Specification {
         *   - 59 unique customers
         *   - State - Top Customer in state - Customer Stream Count
         *   - MN - C1 - 100
-        *   - CA - C21 - 100
         *   - NY - C11 - 80
+        *   - CA - C21 - 100
         *   - NV - C31 - 75
         *   - FL - C41 - 45
         *
@@ -151,100 +151,258 @@ class TrendingArtistsGeographySpec extends Specification {
         * A3
         *   - 51 unique customers
         *   - NY - C11 - 30
-        *   - CA - C21 - 400
-        *   - FL - C41 - 120
-        *   - NV - C31 - 50
-        *   - GA - C51 - 300
+        *   - CA - C21 - 160
+        *   - FL - C41 - 60
+        *   - NV - C31 - 10
+        *   - GA - C51 - 100
         */
 
+        // Create 60 customers
         def customers = new ArrayList<Customer>()
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 60; i++) {
             def customerId = "customer-" + (i+1)
             def customer = CUSTOMERS.generate(customerId)
             customers.add(customer)
             customerTopic.pipeInput(customerId, customer)
         }
 
-        // Define 10 states
-        // 3 customers from MN; 2 customers from NY; 2 customers from CA; and 1 customer each from NV, FL, GA
-        def states = ["MN", "MN", "MN", "NY", "NY", "CA", "CA", "NV", "FL", "GA"]
-
-        // Create addresses for each customer
+        // Assign states to all 60 customers
+        def states = ["MN", "NY", "CA", "NV", "FL", "GA"]
         def addresses = new ArrayList<Address>()
-        for (int i = 0; i < 10; i++) {
+        def stateIdx = 0
+        for (int i = 0; i < 60; i++) {
+            // Assign addresses for the next state
+            if ((i != 0) && (i % 10 == 0)){
+                stateIdx += 1
+            }
+
+            // Create address
             def addressID = "address-" + (i+1)
-            //def address = ADDRESSES.generateCustomerAddress(addressID, customers.get(i).id())
             def address = new Address(addressID, customers.get(i).id(), "00", "Permanent", "1016", "SE",
-                                    "NA", states.get(i), "00000", "00000", "USA", 1.00, 1.00)
+                    "NA", states.get(stateIdx), "00000", "00000", "USA", 1.00, 1.00)
             addresses.add(address)
             addressTopic.pipeInput(addressID, address)
         }
 
-        // Create 6 artists (artist-1, artist-2, artist-3, artist-4, artist-5 and artist-6)
+        // Create 4 artists
         def artists = new ArrayList<Artist>()
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 4; i++) {
             def artistId = "artist-" + (i+1)
             def artist = ARTISTS.generate(artistId)
             artists.add(artist)
             artistTopic.pipeInput(artistId, artist)
         }
 
-        // Create all streams
-        def streams = []
-
-        // artist-1 is listened to by customers 1, 4, 6, 7, 8, 9 and 10, so create streams for them
-        def artist_one_customers = ["customer-1", "customer-4", "customer-6", "customer-7", "customer-8", "customer-9", "customer-10"]
-        for (int i = 0; i < artist_one_customers.size(); i++){
-            def customerId = artist_one_customers.get(i)
-            def stream = STREAMS.generate(customerId, "artist-1")
-            streams.add(stream)
-            streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
-        }
-
-        // artist-2 is listened to by customers 1, 2, 3, 5, 6, 8 and 9
-        def artist_two_customers = ["customer-1", "customer-2", "customer-3", "customer-5", "customer-6", "customer-8", "customer-9"]
-        for (int i = 0; i < artist_two_customers.size(); i++){
-            def customerId = artist_two_customers.get(i)
-            def stream = STREAMS.generate(customerId, "artist-2")
-            streams.add(stream)
-            streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
-        }
-
-        // artist-3 is listened to by customers 2, 4, 7
-        def artist_three_customers = ["customer-2", "customer-4", "customer-7"]
-        for (int i = 0; i < artist_three_customers.size(); i++){
-            def customerId = artist_three_customers.get(i)
-            def stream = STREAMS.generate(customerId, "artist-3")
-            streams.add(stream)
-            streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
-        }
-
-        // artist-4 is listened to by customers 1, 5, 7
-        def artist_four_customers = ["customer-1", "customer-5", "customer-7"]
-        for (int i = 0; i < artist_four_customers.size(); i++){
-            def customerId = artist_four_customers.get(i)
-            def stream = STREAMS.generate(customerId, "artist-4")
-            streams.add(stream)
-            streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
-        }
-
-        // artist-5 is listened to by customers 1, 5, 8
-        def artist_five_customers = ["customer-1", "customer-5", "customer-8"]
-        for (int i = 0; i < artist_five_customers.size(); i++){
-            def customerId = artist_five_customers.get(i)
-            def stream = STREAMS.generate(customerId, "artist-5")
-            streams.add(stream)
-            streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
-        }
-
-        // artist-6 is listened to by customer 2
-        def stream = STREAMS.generate("customer-2", "artist-6")
-        streams.add(stream)
-        streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
+        // Create 1000 streams per artist
+        def streams = new ArrayList<Stream>()
+        createArtist1Streams(streams)
+        createArtist2Streams(streams)
+        createArtist3Streams(streams)
+        createArtist4Streams(streams)
 
         when: 'reading the output records'
         def outputRecords = outputTopic.readValuesToList().last()
 
-        then: "asfnksejanf"
+        then: "Verify that Top 3 artists are returned"
+        def aggregate = outputRecords.trendingArtistAggregates;
+        assert aggregate.size() == 3
+
+        then: "Verify that top 3 artists are artist-1, artist-4 and artist-3"
+        def artist1 = aggregate.get(0)
+        def artist4 = aggregate.get(1)
+        def artist3 = aggregate.get(2)
+        assert artist1.artist.id() == "artist-1"
+        assert artist4.artist.id() == "artist-4"
+        assert artist3.artist.id() == "artist-3"
+
+        then: "Verify total number of unique customers that stream each of the top-3 artists"
+        assert artist1.getUniqueCustomerCount() == 59
+        assert artist4.getUniqueCustomerCount() == 53
+        assert artist3.getUniqueCustomerCount() == 51
+
+        then: "Verify that each of the top 3 artists has 5 states in their top-5 list"
+        def artist1Map = artist1.stateAndCustomerStreamCountMap.map
+        def artist4Map = artist4.stateAndCustomerStreamCountMap.map
+        def artist3Map = artist3.stateAndCustomerStreamCountMap.map
+        assert artist1Map.keySet().size() == 5
+        assert artist4Map.keySet().size() == 5
+        assert artist3Map.keySet().size() == 5
+
+
+        then: "Verify top-5 state names for artist-1"
+        def artist1States = (ArrayList<String>) artist1Map.keySet()
+        assert artist1States.get(0) == "MN"
+        assert artist1States.get(1) == "NY"
+        assert artist1States.get(2) == "CA"
+        assert artist1States.get(3) == "NV"
+        assert artist1States.get(4) == "FL"
+
+        then: "Verify top-5 state names for artist-4"
+        def artist4States = (ArrayList<String>) artist4Map.keySet()
+        assert artist4States.get(0) == "NV"
+        assert artist4States.get(1) == "CA"
+        assert artist4States.get(2) == "FL"
+        assert artist4States.get(3) == "NY"
+        assert artist4States.get(4) == "MN"
+
+        then: "Verify top-5 state names for artist-3"
+        def artist3States = (ArrayList<String>) artist3Map.keySet()
+        assert artist3States.get(0) == "NY"
+        assert artist3States.get(1) == "CA"
+        assert artist3States.get(2) == "FL"
+        assert artist3States.get(3) == "NV"
+        assert artist3States.get(4) == "GA"
+
+        then: "Verify top customer names from each of the top-5 states and their stream counts for all top-3 artists"
+        def artist1CustomerStreamCounts = [["customer-1", 100], ["customer-11", 80], ["customer-21", 100], ["customer-31", 75], ["customer-41", 45]]
+        assert checkCorrectTopCustomerAndStreamCounts(artist1Map, artist1States, artist1CustomerStreamCounts)
+
+        def artist4CustomerStreamCounts = [["customer-31", 60], ["customer-21", 30], ["customer-41", 80], ["customer-11", 50], ["customer-1", 40]]
+        assert checkCorrectTopCustomerAndStreamCounts(artist4Map, artist4States, artist4CustomerStreamCounts)
+
+        def artist3CustomerStreamCounts = [["customer-11", 30], ["customer-21", 160], ["customer-41", 60], ["customer-31", 10], ["customer-51", 100]]
+        assert checkCorrectTopCustomerAndStreamCounts(artist3Map, artist3States, artist3CustomerStreamCounts)
+    }
+
+    def checkCorrectTopCustomerAndStreamCounts(Map<String, CustomerStreamCountMap> artistMap, ArrayList<String> artistStates, ArrayList<List<Serializable>> customerStreamCounts){
+        for (int i = 0; i < artistStates.size(); i++){
+            // Get state name
+            def state = artistStates[i]
+
+            // Get top-customer and stream count information for that state
+            def customerStreamCountInfo = customerStreamCounts[i]
+            def customerId = customerStreamCountInfo[0]
+            def customerStreamCount = customerStreamCountInfo[1]
+
+            def customerStreamCountMap = artistMap.get(state).map
+            def customerIds = (ArrayList<String>) customerStreamCountMap.keySet()
+
+            // If either of the expected customerId or customer stream counts are wrong, return false
+            if (customerIds.get(0) != customerId || customerStreamCountMap.get(customerId).streamCounts != customerStreamCount){
+                return false
+            }
+        }
+        return true
+    }
+
+    def createArtist4Streams(ArrayList<Stream> streams){
+        // Create Artist 4 streams for MN customers
+        def streamCountsMN = [40, 15, 10, 10, 10, 5, 5, 0, 0, 5]
+        createArtistStreams(streamCountsMN, streams, "artist-4", 1)
+
+        // Create Artist 4 streams for NY customers
+        def streamCountsNY = [50, 20, 10, 10, 10, 5, 5, 5, 5]
+        createArtistStreams(streamCountsNY, streams, "artist-4", 11)
+
+        // Create Artist 4 streams for CA customers
+        def streamCountsCA = [30, 20, 20, 10, 10, 10, 10, 10, 10, 10]
+        createArtistStreams(streamCountsCA, streams, "artist-4", 21)
+
+        // Create Artist 4 streams for NV customers
+        def streamCountsNV = [60, 20, 10, 10, 10, 10, 10, 10, 10, 10]
+        createArtistStreams(streamCountsNV, streams, "artist-4", 31)
+
+        // Create Artist 4 streams for FL customers
+        def streamCountsFL = [80, 20, 20, 10, 10, 10, 10, 10, 10]
+        createArtistStreams(streamCountsFL, streams, "artist-4", 41)
+
+        // Create Artist 4 streams for GA customers
+        def streamCountsGA = [180, 30, 30, 15, 15, 15, 15]
+        createArtistStreams(streamCountsGA, streams, "artist-4", 51)
+    }
+
+    def createArtist3Streams(ArrayList<Stream> streams){
+        // Create Artist 3 streams for MN customers
+        def streamCountsMN = [60, 25, 25, 25, 5, 5, 5]
+        createArtistStreams(streamCountsMN, streams, "artist-3", 1)
+
+        // Create Artist 3 streams for NY customers
+        def streamCountsNY = [30, 10, 20, 10, 5, 5, 5, 5, 5, 5]
+        createArtistStreams(streamCountsNY, streams, "artist-3", 11)
+
+        // Create Artist 3 streams for CA customers
+        def streamCountsCA = [160, 40, 80, 40, 40, 20, 10, 5, 5]
+        createArtistStreams(streamCountsCA, streams, "artist-3", 21)
+
+        // Create Artist 3 streams for NV customers
+        def streamCountsNV = [10, 5, 5, 5, 5, 5, 5, 5, 5]
+        createArtistStreams(streamCountsNV, streams, "artist-3", 31)
+
+        // Create Artist 3 streams for FL customers
+        def streamCountsFL = [60, 15, 5, 10, 5, 10, 5, 5, 5]
+        createArtistStreams(streamCountsFL, streams, "artist-3", 41)
+
+        // Create Artist 3 streams for GA customers
+        def streamCountsGA = [100, 25, 25, 5, 10, 5, 10]
+        createArtistStreams(streamCountsGA, streams, "artist-3", 51)
+    }
+
+    def createArtist2Streams(ArrayList<Stream> streams){
+        // Create Artist 2 streams for MN customers
+        def streamCountsMN = [80, 30, 20, 10, 20, 15, 10, 5, 5, 5]
+        createArtistStreams(streamCountsMN, streams, "artist-2", 1)
+
+        // Create Artist 2 streams for NY customers
+        def streamCountsNY = [40, 15, 10, 10, 10, 10, 10, 5, 5, 5]
+        createArtistStreams(streamCountsNY, streams, "artist-2", 11)
+
+        // Create Artist 2 streams for CA customers
+        def streamCountsCA = [150, 30, 20, 10, 5, 5, 5, 5]
+        createArtistStreams(streamCountsCA, streams, "artist-2", 21)
+
+        // Create Artist 2 streams for NV customers
+        def streamCountsNV = [125, 35, 30, 10, 20, 15, 20, 15, 20, 10]
+        createArtistStreams(streamCountsNV, streams, "artist-2", 31)
+
+        // Create Artist 2 streams for FL customers
+        def streamCountsFL = [20, 10, 5, 5, 5, 5]
+        createArtistStreams(streamCountsFL, streams, "artist-2", 41)
+
+        // Create Artist 2 streams for GA customers
+        def streamCountsGA = [50, 20, 10, 10, 10]
+        createArtistStreams(streamCountsGA, streams, "artist-2", 51)
+    }
+
+    def createArtist1Streams(ArrayList<Stream> streams){
+        // Create Artist 1 streams for MN customers
+        def streamCountsMN = [100, 40, 15, 15, 15, 15, 15, 10, 10, 5]
+        createArtistStreams(streamCountsMN, streams, "artist-1", 1)
+
+        // Create Artist 1 streams for NY customers
+        def streamCountsNY = [80, 40, 20, 20, 10, 8, 7, 5, 5, 5]
+        createArtistStreams(streamCountsNY, streams, "artist-1", 11)
+
+        // Create Artist 1 streams for CA customers
+        def streamCountsCA = [100, 30, 10, 10, 5, 5, 5, 5, 5, 5]
+        createArtistStreams(streamCountsCA, streams, "artist-1", 21)
+
+        // Create Artist 1 streams for NV customers
+        def streamCountsNV = [75, 15, 20, 5, 10, 5, 10, 5, 10, 5]
+        createArtistStreams(streamCountsNV, streams, "artist-1", 31)
+
+        // Create Artist 1 streams for FL customers
+        def streamCountsFL = [45, 15, 5, 10, 5, 10, 5, 10, 10, 5]
+        createArtistStreams(streamCountsFL, streams, "artist-1", 41)
+
+        // Create Artist 1 streams for GA customers
+        def streamCountsGA = [20, 40, 10, 5, 5, 5, 5, 5, 5]
+        createArtistStreams(streamCountsGA, streams, "artist-1", 51)
+    }
+
+    def createArtistStreams(ArrayList<Integer> artistStreams, ArrayList<Stream> streams, String artistName, int customerIdx){
+        for (int totalStreamCountsPerCustomer : artistStreams){
+            if (totalStreamCountsPerCustomer == 0){
+                continue
+            }
+            (1..totalStreamCountsPerCustomer).forEach(streamCount -> {
+                def customerId = "customer-" + customerIdx
+                def stream = STREAMS.generate(customerId, artistName)
+                streams.add(stream)
+                streamsTopic.pipeInput(UUID.randomUUID().toString(), stream)
+            })
+
+            // Move onto next customer
+            customerIdx += 1
+        }
     }
 }

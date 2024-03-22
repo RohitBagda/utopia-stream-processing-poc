@@ -199,11 +199,14 @@ public class TrendingArtistGeography {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class TrendingArtistAggregate {
+        private Artist artist;
         private long uniqueCustomerCount;
         private StateAndCustomerStreamCountMap stateAndCustomerStreamCountMap;
 
-        public TrendingArtistAggregate() {
+        public TrendingArtistAggregate(Artist artist) {
+            this.artist = artist;
             uniqueCustomerCount = 0L;
             stateAndCustomerStreamCountMap = new StateAndCustomerStreamCountMap();
         }
@@ -235,7 +238,7 @@ public class TrendingArtistGeography {
             // Get TrendingArtistAggregate for artistId if it exists. If not create a new one.
             TrendingArtistAggregate trendingArtistAggregate = trendingArtistAggregatePerArtist.computeIfAbsent(
                 streamWithCustomerAndArtist.artist.id(),
-                value -> new TrendingArtistAggregate()
+                value -> new TrendingArtistAggregate(streamWithCustomerAndArtist.artist)
             );
 
             // Get the CustomerStreamCountMap for that artist and state if it exists. If not create a new one.
