@@ -133,7 +133,7 @@ public class TrendingArtistGeography {
                 )
                 .selectKey((artistId, streamWithCustomerAndArtist) -> "GLOBAL")
                 .groupByKey(Grouped.with(Serdes.String(), STREAM_WITH_CUSTOMER_AND_ARTIST_JSON_SERDE))
-                .windowedBy(SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(10)))
+                .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(10)))
                 .aggregate(SortedCounterMap::new, trendingArtistAggregator(), trendingArtistAggregateMaterializedView())
                 .toStream()
                 .mapValues((globalKey, sortedCounterMap) -> sortedCounterMap.top(3))
