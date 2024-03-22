@@ -6,18 +6,18 @@ import org.apache.kafka.streams.TestInputTopic
 import org.apache.kafka.streams.TestOutputTopic
 import org.apache.kafka.streams.TopologyTestDriver
 import org.improving.workshop.Streams
-import org.junit.experimental.theories.internal.SpecificDataPointsSupplier
 import org.msse.demo.mockdata.customer.address.Address
 import org.msse.demo.mockdata.customer.profile.Customer
 import org.msse.demo.mockdata.music.artist.Artist
 import org.msse.demo.mockdata.music.stream.Stream
 import spock.lang.Specification
 
+import java.time.Duration
+
 import static org.improving.workshop.phase3.TrendingArtistGeography.*
 import static org.improving.workshop.utils.DataFaker.ARTISTS
 import static org.improving.workshop.utils.DataFaker.CUSTOMERS
 import static org.improving.workshop.utils.DataFaker.STREAMS
-import static org.improving.workshop.utils.DataFaker.ADDRESSES
 
 class TrendingArtistsGeographySpec extends Specification {
     TopologyTestDriver driver
@@ -54,108 +54,134 @@ class TrendingArtistsGeographySpec extends Specification {
         driver.close()
     }
 
+    /**
+     * Customers: 10 per state and total of 6 states
+     * Customers and Address:
+     *   MN: [C1 ... C10]
+     *   NY: [C11 ... C20]
+     *   CA: [C21 ... C30]
+     *   NV: [C31 ... C40]
+     *   FL: [C41 ... C50]
+     *   GA: [C51 ... C60]
+     *
+     * Artists: Each Artist gets a thousand streams
+     *   A1 (assigned to S0001 ... S1000),
+     *   A2 (assigned to S1001 ... S2000),
+     *   A3 (assigned to S2001 ... S3000),
+     *   A4 (assigned to S3001 ... S4000),
+     *
+     * Artists and their Streams per state
+     * |    | MN  | NY  | CA  | NV  | FL  | GA  | Total |
+     * |----|-----|-----|-----|-----|-----|-----|-------|
+     * | A1 | 240 | 200 | 180 | 160 | 120 | 100 |  1000 |
+     * | A2 | 200 | 150 | 300 | 350 | 100 | 100 |  1000 |
+     * | A3 | 150 | 100 | 400 |  50 | 120 | 180 |  1000 |
+     * | A4 | 100 | 120 | 140 | 160 | 180 | 300 |  1000 |
+     *
+     * Artists and their Stream per state Divided by Customer# for that state. So
+     *   MN is C1, C2 ... C10.
+     *   NY is C11, C12 ... C20.
+     *   ...
+     *   GA is C51, C52 ... C60
+     *
+     *
+     * |A1/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
+     * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
+     * | MN  | 100 | 40 | 15 | 15 | 15 | 15 | 15 | 10 | 10 |  5  |  240  |             10             |
+     * | NY  |  80 | 40 | 20 | 20 | 10 |  8 |  7 |  5 |  5 |  5  |  200  |             10             |
+     * | CA  | 100 | 30 | 10 | 10 |  5 |  5 |  5 |  5 |  5 |  5  |  180  |             10             |
+     * | NV  |  75 | 15 | 20 |  5 | 10 |  5 | 10 |  5 | 10 |  5  |  160  |             10             |
+     * | FL  |  45 | 15 |  5 | 10 |  5 | 10 |  5 | 10 | 10 |  5  |  120  |             10             |
+     * | GA  |  20 | 40 | 10 |  5 |  5 |  5 |  5 |  5 |  5 |  0  |  100  |              9             |
+     * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             59             |
+     *
+     * |A2/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
+     * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
+     * | MN  |  80 | 30 | 20 | 10 | 20 | 15 | 10 |  5 |  5 |  5  |  200  |             10             |
+     * | NY  |  40 | 15 | 10 | 10 | 10 | 10 | 10 |  5 |  5 |  5  |  120  |             10             |
+     * | CA  | 150 | 30 | 20 | 10 |  5 |  5 |  5 |  5 |  0 |  0  |  230  |              8             |
+     * | NV  | 125 | 35 | 30 | 10 | 20 | 15 | 20 | 15 | 20 | 10  |  300  |             10             |
+     * | FL  |  20 | 10 |  5 |  5 |  5 |  5 |  0 |  0 |  0 |  0  |   50  |              6             |
+     * | GA  |  50 | 20 | 10 | 10 | 10 |  0 |  0 |  0 |  0 |  0  |  100  |              5             |
+     * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             49             |
+     *
+     * |A3/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
+     * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
+     * | MN  |  60 | 25 | 25 | 25 |  5 |  5 |  5 |  0 |  0 |   0 |  150  |              7             |
+     * | NY  |  30 | 10 | 20 | 10 |  5 |  5 |  5 |  5 |  5 |   5 |  100  |             10             |
+     * | CA  | 160 | 40 | 80 | 40 | 40 | 20 | 10 |  5 |  5 |   0 |  400  |              9             |
+     * | NV  |  10 |  5 |  5 |  5 |  5 |  5 |  5 |  5 |  5 |   0 |   50  |              9             |
+     * | FL  |  60 | 15 |  5 | 10 |  5 | 10 |  5 |  5 |  5 |   0 |  120  |              9             |
+     * | GA  | 100 | 25 | 25 |  5 | 10 |  5 | 10 |  0 |  0 |   0 |  180  |              7             |
+     * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             51             |
+     *
+     * |A4/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
+     * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
+     * | MN  |  40 | 15 | 10 | 10 | 10 |  5 |  5 |  0 |  0 |  5  |  100  |              8             |
+     * | NY  |  50 | 20 | 10 | 10 | 10 |  5 |  5 |  5 |  5 |  0  |  120  |              9             |
+     * | CA  |  30 | 20 | 20 | 10 | 10 | 10 | 10 | 10 | 10 | 10  |  140  |             10             |
+     * | NV  |  60 | 20 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  |  160  |             10             |
+     * | FL  |  80 | 20 | 20 | 10 | 10 | 10 | 10 | 10 | 10 |  0  |  180  |              9             |
+     * | GA  | 180 | 30 | 30 | 15 | 15 | 15 | 15 |  0 |  0 |  0  |  300  |              7             |
+     * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             53             |
+     *
+     * Expected Results:
+     *
+     *  A1
+     *   - 59 unique customers
+     *   - State - Top Customer in state - Customer Stream Count
+     *   - MN - C1 - 100
+     *   - NY - C11 - 80
+     *   - CA - C21 - 100
+     *   - NV - C31 - 75
+     *   - FL - C41 - 45
+     *
+     * A4
+     *   - 53 unique customers
+     *   - State - Top Customer in state - Customer Stream Count
+     *   - NV - C31 - 60
+     *   - CA - C21 - 30
+     *   - FL - C41 - 80
+     *   - NY - C11 - 50
+     *   - MN - C1 - 40
+     *
+     * A3
+     *   - 51 unique customers
+     *   - NY - C11 - 30
+     *   - CA - C21 - 160
+     *   - FL - C41 - 60
+     *   - NV - C31 - 10
+     *   - GA - C51 - 100
+     *
+     * Now we advance time to the next window and pipe the stream data again but only for artists 2, 3 and 4
+     * Expected Results:
+     * A4
+     *   - 53 unique customers
+     *   - State - Top Customer in state - Customer Stream Count
+     *   - NV - C31 - 60
+     *   - CA - C21 - 30
+     *   - FL - C41 - 80
+     *   - NY - C11 - 50
+     *   - MN - C1 - 40
+     *
+     * A3
+     *   - 51 unique customers
+     *   - NY - C11 - 30
+     *   - CA - C21 - 160
+     *   - FL - C41 - 60
+     *   - NV - C31 - 10
+     *   - GA - C51 - 100
+     *
+     * A2
+     *   - 49 unique customers
+     *   - NV - C31 - 125
+     *   - MN - C1 - 80
+     *   - NY - C11 - 40
+     *   - CA - C21 - 150
+     *   - FL - C41 - 20
+     */
     def "trending artists geography"() {
         given: 'multiple customer streams (each with an address) for multiple artists received by the topology'
-
-        /*
-        * Customers: 10 per state and total of 6 states
-        * Customers and Address:
-        *   MN: [C1 ... C10]
-        *   NY: [C11 ... C20]
-        *   CA: [C21 ... C30]
-        *   NV: [C31 ... C40]
-        *   FL: [C41 ... C50]
-        *   GA: [C51 ... C60]
-        *
-        * Artists: Each Artist gets a thousand streams
-        *   A1 (assigned to S0001 ... S1000),
-        *   A2 (assigned to S1001 ... S2000),
-        *   A3 (assigned to S2001 ... S3000),
-        *   A4 (assigned to S3001 ... S4000),
-        *
-        * Artists and their Streams per state
-        * |    | MN  | NY  | CA  | NV  | FL  | GA  | Total |
-        * |----|-----|-----|-----|-----|-----|-----|-------|
-        * | A1 | 240 | 200 | 180 | 160 | 120 | 100 |  1000 |
-        * | A2 | 200 | 150 | 300 | 350 | 100 | 100 |  1000 |
-        * | A3 | 150 | 100 | 400 |  50 | 120 | 180 |  1000 |
-        * | A4 | 100 | 120 | 140 | 160 | 180 | 300 |  1000 |
-        *
-        * Artists and their Stream per state Divided by Customer# for that state. So
-        *   MN is C1, C2 ... C10.
-        *   NY is C11, C12 ... C20.
-        *   ...
-        *   GA is C51, C52 ... C60
-        *
-        *
-        * |A1/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
-        * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
-        * | MN  | 100 | 40 | 15 | 15 | 15 | 15 | 15 | 10 | 10 |  5  |  240  |             10             |
-        * | NY  |  80 | 40 | 20 | 20 | 10 |  8 |  7 |  5 |  5 |  5  |  200  |             10             |
-        * | CA  | 100 | 30 | 10 | 10 |  5 |  5 |  5 |  5 |  5 |  5  |  180  |             10             |
-        * | NV  |  75 | 15 | 20 |  5 | 10 |  5 | 10 |  5 | 10 |  5  |  160  |             10             |
-        * | FL  |  45 | 15 |  5 | 10 |  5 | 10 |  5 | 10 | 10 |  5  |  120  |             10             |
-        * | GA  |  20 | 40 | 10 |  5 |  5 |  5 |  5 |  5 |  5 |  0  |  100  |              9             |
-        * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             59             |
-        *
-        * |A2/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
-        * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
-        * | MN  |  80 | 30 | 20 | 10 | 20 | 15 | 10 |  5 |  5 |  5  |  200  |             10             |
-        * | NY  |  40 | 15 | 10 | 10 | 10 | 10 | 10 |  5 |  5 |  5  |  120  |             10             |
-        * | CA  | 150 | 30 | 20 | 10 |  5 |  5 |  5 |  5 |  0 |  0  |  230  |              8             |
-        * | NV  | 125 | 35 | 30 | 10 | 20 | 15 | 20 | 15 | 20 | 10  |  300  |             10             |
-        * | FL  |  20 | 10 |  5 |  5 |  5 |  5 |  0 |  0 |  0 |  0  |   50  |              6             |
-        * | GA  |  50 | 20 | 10 | 10 | 10 |  0 |  0 |  0 |  0 |  0  |  100  |              5             |
-        * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             49             |
-        *
-        * |A3/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
-        * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
-        * | MN  |  60 | 25 | 25 | 25 |  5 |  5 |  5 |  0 |  0 |   0 |  150  |              7             |
-        * | NY  |  30 | 10 | 20 | 10 |  5 |  5 |  5 |  5 |  5 |   5 |  100  |             10             |
-        * | CA  | 160 | 40 | 80 | 40 | 40 | 20 | 10 |  5 |  5 |   0 |  400  |              9             |
-        * | NV  |  10 |  5 |  5 |  5 |  5 |  5 |  5 |  5 |  5 |   0 |   50  |              9             |
-        * | FL  |  60 | 15 |  5 | 10 |  5 | 10 |  5 |  5 |  5 |   0 |  120  |              9             |
-        * | GA  | 100 | 25 | 25 |  5 | 10 |  5 | 10 |  0 |  0 |   0 |  180  |              7             |
-        * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             51             |
-        *
-        * |A4/C#|  1  |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |  10 | Total | Number of unique customers |
-        * |-----|-----|----|----|----|----|----|----|----|----|-----|-------|----------------------------|
-        * | MN  |  40 | 15 | 10 | 10 | 10 |  5 |  5 |  0 |  0 |  5  |  100  |              8             |
-        * | NY  |  50 | 20 | 10 | 10 | 10 |  5 |  5 |  5 |  5 |  0  |  120  |              9             |
-        * | CA  |  30 | 20 | 20 | 10 | 10 | 10 | 10 | 10 | 10 | 10  |  140  |             10             |
-        * | NV  |  60 | 20 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  |  160  |             10             |
-        * | FL  |  80 | 20 | 20 | 10 | 10 | 10 | 10 | 10 | 10 |  0  |  180  |              9             |
-        * | GA  | 180 | 30 | 30 | 15 | 15 | 15 | 15 |  0 |  0 |  0  |  300  |              7             |
-        * |     |     |    |    |    |    |    |    |    |    |     | 1000  |             53             |
-        *
-        * Expected Results:
-        *
-        *  A1
-        *   - 59 unique customers
-        *   - State - Top Customer in state - Customer Stream Count
-        *   - MN - C1 - 100
-        *   - NY - C11 - 80
-        *   - CA - C21 - 100
-        *   - NV - C31 - 75
-        *   - FL - C41 - 45
-        *
-        * A4
-        *   - 53 unique customers
-        *   - State - Top Customer in state - Customer Stream Count
-        *   - NV - C31 - 60
-        *   - CA - C21 - 30
-        *   - FL - C41 - 80
-        *   - NY - C11 - 50
-        *   - MN - C1 - 40
-        *
-        * A3
-        *   - 51 unique customers
-        *   - NY - C11 - 30
-        *   - CA - C21 - 160
-        *   - FL - C41 - 60
-        *   - NV - C31 - 10
-        *   - GA - C51 - 100
-        */
 
         // Create 60 customers
         def customers = new ArrayList<Customer>()
@@ -262,6 +288,77 @@ class TrendingArtistsGeographySpec extends Specification {
 
         def artist3CustomerStreamCounts = [["customer-11", 30], ["customer-21", 160], ["customer-41", 60], ["customer-31", 10], ["customer-51", 100]]
         assert checkCorrectTopCustomerAndStreamCounts(artist3Map, artist3States, artist3CustomerStreamCounts)
+
+        when: "creating data for a new window but only for artists 2, 3, and 4"
+        streamsTopic.advanceTime(Duration.ofMinutes(10))
+        createArtist2Streams(streams)
+        createArtist3Streams(streams)
+        createArtist4Streams(streams)
+
+        then: 'reading the output records'
+        def nextOutputRecords = outputTopic.readValuesToList()
+        assert nextOutputRecords.size() == 3000
+
+        then: "Verify that Top 3 artists are returned"
+        def lastRecord = nextOutputRecords.last()
+        def newAggregate = lastRecord.trendingArtistAggregates;
+        assert newAggregate.size() == 3
+
+        then: "Verify that top 3 artists are artist-1, artist-4 and artist-3"
+        def newArtist4 = newAggregate.get(0)
+        def newArtist3 = newAggregate.get(1)
+        def newArtist2 = newAggregate.get(2)
+        assert newArtist4.artist.id() == "artist-4"
+        assert newArtist3.artist.id() == "artist-3"
+        assert newArtist2.artist.id() == "artist-2"
+
+        then: "Verify total number of unique customers that stream each of the top-3 artists"
+        assert newArtist4.getUniqueCustomerCount() == 53
+        assert newArtist3.getUniqueCustomerCount() == 51
+        assert newArtist2.getUniqueCustomerCount() == 49
+
+        then: "Verify that each of the top 3 artists has 5 states in their top-5 list"
+        def newArtist4Map = newArtist4.stateAndCustomerStreamCountMap.map
+        def newArtist3Map = newArtist3.stateAndCustomerStreamCountMap.map
+        def newArtist2Map = newArtist2.stateAndCustomerStreamCountMap.map
+        assert newArtist4Map.keySet().size() == 5
+        assert newArtist3Map.keySet().size() == 5
+        assert newArtist2Map.keySet().size() == 5
+
+
+        then: "Verify top-5 state names for artist-4"
+        def newArtist4States = (ArrayList<String>) newArtist4Map.keySet()
+        assert newArtist4States.get(0) == "NV"
+        assert newArtist4States.get(1) == "CA"
+        assert newArtist4States.get(2) == "FL"
+        assert newArtist4States.get(3) == "NY"
+        assert newArtist4States.get(4) == "MN"
+
+        then: "Verify top-5 state names for artist-3"
+        def newArtist3States = (ArrayList<String>) newArtist3Map.keySet()
+        assert newArtist3States.get(0) == "NY"
+        assert newArtist3States.get(1) == "CA"
+        assert newArtist3States.get(2) == "FL"
+        assert newArtist3States.get(3) == "NV"
+        assert newArtist3States.get(4) == "GA"
+
+        then: "Verify top-5 state names for artist-2"
+        def newArtist2States = (ArrayList<String>) newArtist2Map.keySet()
+        assert newArtist2States.get(0) == "NV"
+        assert newArtist2States.get(1) == "MN"
+        assert newArtist2States.get(2) == "NY"
+        assert newArtist2States.get(3) == "CA"
+        assert newArtist2States.get(4) == "FL"
+
+        then: "Verify top customer names from each of the top-5 states and their stream counts for all top-3 artists"
+        def newArtist4CustomerStreamCounts = [["customer-31", 60], ["customer-21", 30], ["customer-41", 80], ["customer-11", 50], ["customer-1", 40]]
+        assert checkCorrectTopCustomerAndStreamCounts(newArtist4Map, newArtist4States, newArtist4CustomerStreamCounts)
+
+        def newArtist3CustomerStreamCounts = [["customer-11", 30], ["customer-21", 160], ["customer-41", 60], ["customer-31", 10], ["customer-51", 100]]
+        assert checkCorrectTopCustomerAndStreamCounts(newArtist3Map, newArtist3States, newArtist3CustomerStreamCounts)
+
+        def newArtist2CustomerStreamCounts = [["customer-31", 125], ["customer-1", 80], ["customer-11", 40], ["customer-21", 150], ["customer-41", 20]]
+        assert checkCorrectTopCustomerAndStreamCounts(newArtist2Map, newArtist2States, newArtist2CustomerStreamCounts)
     }
 
     def checkCorrectTopCustomerAndStreamCounts(Map<String, CustomerStreamCountMap> artistMap, ArrayList<String> artistStates, ArrayList<List<Serializable>> customerStreamCounts){

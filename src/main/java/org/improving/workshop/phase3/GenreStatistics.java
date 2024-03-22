@@ -17,6 +17,9 @@ import java.util.Set;
 import static org.apache.kafka.streams.state.Stores.persistentKeyValueStore;
 import static org.improving.workshop.Streams.*;
 
+/**
+ * Genre Statistics - For each genre find the total number artists, number of tickets sold and total revenue generated.
+ */
 @Slf4j
 public class GenreStatistics {
 

@@ -24,15 +24,27 @@ import static org.apache.kafka.streams.state.Stores.persistentKeyValueStore;
 import static org.apache.kafka.streams.state.Stores.persistentWindowStore;
 import static org.improving.workshop.Streams.*;
 
+/**
+ * Find the 3 most trending streamed artists currently and then identify the top 5 states with the highest number of
+ * unique customers and also the top customer with most stream counts from each of those 5 states.
+ * Trending here means an artist has the highest unique customers in the US in the past 10 minutes.
+ * If there is tie in the top 5 states it picks the state with the highest number of streams for that artist in
+ * that window.
+ */
 @Slf4j
 public class TrendingArtistGeography {
 
     public static final String OUTPUT_TOPIC = "kafka-trending-artist-geography";
-    public static final JsonSerde<StreamWithAddress> STREAM_WITH_ADDRESS_JSON_SERDE = new JsonSerde<>(StreamWithAddress.class);
-    public static final JsonSerde<StreamWithCustomerData> STREAM_WITH_CUSTOMER_DATA_JSON_SERDE = new JsonSerde<>(StreamWithCustomerData.class);
-    public static final JsonSerde<StreamWithCustomerAndArtist> STREAM_WITH_CUSTOMER_AND_ARTIST_JSON_SERDE = new JsonSerde<>(StreamWithCustomerAndArtist.class);
-    public static final JsonSerde<SortedCounterMap> SORTED_COUNTER_MAP_JSON_SERDE = new JsonSerde<>(SortedCounterMap.class);
-    public static final JsonSerde<TrendingArtistAggregates> TRENDING_ARTIST_AGGREGATES_JSON_SERDE = new JsonSerde<>(TrendingArtistAggregates.class);
+    public static final JsonSerde<StreamWithAddress> STREAM_WITH_ADDRESS_JSON_SERDE =
+            new JsonSerde<>(StreamWithAddress.class);
+    public static final JsonSerde<StreamWithCustomerData> STREAM_WITH_CUSTOMER_DATA_JSON_SERDE =
+            new JsonSerde<>(StreamWithCustomerData.class);
+    public static final JsonSerde<StreamWithCustomerAndArtist> STREAM_WITH_CUSTOMER_AND_ARTIST_JSON_SERDE =
+            new JsonSerde<>(StreamWithCustomerAndArtist.class);
+    public static final JsonSerde<SortedCounterMap> SORTED_COUNTER_MAP_JSON_SERDE =
+            new JsonSerde<>(SortedCounterMap.class);
+    public static final JsonSerde<TrendingArtistAggregates> TRENDING_ARTIST_AGGREGATES_JSON_SERDE =
+            new JsonSerde<>(TrendingArtistAggregates.class);
 
     public static void main(final String[] args) {
         final StreamsBuilder builder = new StreamsBuilder();
@@ -97,7 +109,7 @@ public class TrendingArtistGeography {
                 )
                 .selectKey((artistId, streamWithCustomerAndArtist) -> "GLOBAL")
                 .groupByKey(Grouped.with(Serdes.String(), STREAM_WITH_CUSTOMER_AND_ARTIST_JSON_SERDE))
-                .windowedBy(SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(2)))
+                .windowedBy(SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(10)))
                 .aggregate(SortedCounterMap::new, trendingArtistAggregator(), trendingArtistAggregateMaterializedView())
                 .toStream()
                 .mapValues((globalKey, sortedCounterMap) -> sortedCounterMap.top(3))
@@ -115,7 +127,7 @@ public class TrendingArtistGeography {
     private static Materialized<String, SortedCounterMap, WindowStore<Bytes, byte[]>> trendingArtistAggregateMaterializedView() {
         // kTable (materialized) configuration
         return Materialized
-                .<String, SortedCounterMap>as(persistentWindowStore("trending-artists-aggregate-table", Duration.ofMinutes(5), Duration.ofMinutes(2), false))
+                .<String, SortedCounterMap>as(persistentWindowStore("trending-artists-aggregate-table", Duration.ofMinutes(15), Duration.ofMinutes(10), false))
                 .withKeySerde(Serdes.String())
                 .withValueSerde(SORTED_COUNTER_MAP_JSON_SERDE);
     }

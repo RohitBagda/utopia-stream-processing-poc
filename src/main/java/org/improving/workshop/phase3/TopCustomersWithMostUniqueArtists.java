@@ -21,6 +21,11 @@ import static java.util.stream.Collectors.toMap;
 import static org.apache.kafka.streams.state.Stores.persistentKeyValueStore;
 import static org.improving.workshop.Streams.*;
 
+/**
+ * Business question: Finds Top 3 customers with the highest number of unique artists.
+ * Description: We will find the top 3 customers with the highest number of unique artists as well as the list of
+ * unique artists for those customers
+ */
 @Slf4j
 public class TopCustomersWithMostUniqueArtists {
     // MUST BE PREFIXED WITH "kafka-workshop-"
